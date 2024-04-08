@@ -5,30 +5,24 @@ import time
 app = Flask(__name__)
 
 # Dictionary to map protocol numbers to names
-protocol_names = {
+protocol_dictionary_number = {
     6: '0', #TCP
     17: '1', # UDP
     1: '2' #ICMP
 }
 
-# Dictionary to map port numbers to service names
-service_names = {
-    20: 'ftp_data',
-    21: 'ftp_control',
-    22: 'ssh',
-    23: 'telnet',
-    25: 'smtp',
-    53: 'dns',
-    80: 'http',
+protocol_dictionary_name = {
+    6: 'TCP', 
+    17: 'UDP', 
+    1: 'ICMP' 
 }
-
 # Function to count the number of shell accesses
-def count_shell_accesses(packet):
+def count_shell_accesses(packet, protocol_name):  # Pass protocol_name as an argument
     try:
         num_shells = 0  # Initialize the counter for shell accesses
 
         # Assuming shell access is determined based on the destination port
-        if IP in packet and TCP in packet and packet[TCP].dport == 22:  # Assuming port 22 (SSH) is used for shell access
+        if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:  # Assuming port 22 (SSH) is used for shell access
             num_shells += 1
 
         return num_shells
@@ -64,12 +58,12 @@ def packet_indicates_file_creation(packet):
 
 
 # Function to count the number of accesses to the root
-def count_root_accesses(packet):
+def count_root_accesses(packet, protocol_name):  # Pass protocol_name as an argument
     try:
         num_root = 0  # Initialize the counter for root accesses
 
         # Assuming the root access is determined based on the destination port
-        if IP in packet and TCP in packet and packet[TCP].dport == 22:  # Assuming port 22 (SSH) is used for root access
+        if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:  # Assuming port 22 (SSH) is used for root access
             num_root += 1
 
         return num_root
@@ -78,9 +72,9 @@ def count_root_accesses(packet):
         return 0  # Return 0 if there's an error
 
 # Define the pattern or condition for detecting hot hints
-def detect_hot_hint(packet):
+def detect_hot_hint(packet, protocol_name):  # Pass protocol_name as an argument
     # Check if TCP layer exists and if the custom option 'hot_hint_flag' is set
-    if TCP in packet and packet[TCP].options and ('hot_hint_flag', None) in packet[TCP].options:
+    if protocol_name in packet and packet[protocol_name].options and ('hot_hint_flag', None) in packet[protocol_name].options:
         return True
     else:
         return False
@@ -118,16 +112,16 @@ def count_failed_logins(packet):
         else:
             return 0, 0, 0  # Return 0 if payload does not exist
     except Exception as e:
-        print(f"Error processing packet: {e}")
+        print(f"Error processing packet from count_failed_logins: {e}")
         return 0, 0, 0  # Return 0 if there's an error in processing the packet
 
 # Function to count the number of file access operations
-def count_file_accesses(packet):
+def count_file_accesses(packet, protocol_name):
     try:
         num_access_files = 0  # Initialize the counter for file access operations
 
         # Assuming file access is determined based on the destination port
-        if IP in packet and TCP in packet and packet[TCP].dport == 21:  # Assuming port 21 (FTP) is used for file access
+        if IP in packet and protocol_name in packet and packet[protocol_name].dport == 21:  # Assuming port 21 (FTP) is used for file access
             num_access_files += 1
 
         return num_access_files
@@ -135,102 +129,96 @@ def count_file_accesses(packet):
         print(f"Error counting file access operations: {e}")
         return 0  # Return 0 if there's an error
 
+def is_guest_login(packet):
+    """
+    Check if the packet payload indicates a guest login based on variations.
+    """
+    try:
+        # Check if the packet contains a payload
+        if Raw in packet:
+            # Attempt to decode the payload
+            payload = packet[Raw].load.decode('utf-8')
+            
+            # Define variations or patterns indicating guest login
+            guest_variations = ["guest", "anonymous", "anon", "guestuser", "anonuser", "public"]  # Add more variations as needed
+
+            # Check if any of the variations are present in the payload
+            if any(variation in payload.lower() for variation in guest_variations):
+                return 1  # Indicate guest login
+
+    except Exception as e:
+        # Handle decoding errors
+        print(f"Error decoding payload: {e}")
+    
+    return 0  # No indication of guest login
+
+
 
 @app.route('/', methods=['GET'])
 def get_packet_info():
     try:
         # Capture the time when the packet was received
         received_time = time.time()
+        pack = Ether() / IP(flags="MF") / TCP() / UDP() / ICMP()
 
-        # Create scapy packet
-        tcp_layer = TCP(flags="SF", sport=80, dport=80)
-        tcp_layer.land = 0  # Assuming land is 0
-
-        pack = Ether()/IP(flags="MF")/tcp_layer/DNS()  # Set MF flag in IP header
-
-        # Calculate the duration
         duration = int(time.time() - received_time)
-
-        # Initialize other variables to store extracted information
-        protocol_type = None
-        service = None
-        flags = None
-        src_bytes = None
-        dst_bytes = None
-        land = None
-        wrong_fragment = None
-        urgent_flag = None
+        protocol_type = 0
+        src_bytes = 0
+        dst_bytes = 0
+        land = 0
+        wrong_fragment = 0
+        urgent_flag = 0
         hot_hint_count = 0
         num_failed_logins = 0
-        Logged_In = None
+        Logged_In = 0
         root_shell = 0  # Initialize root_shell variable
         su_attempted = 0
         num_root = 0
         num_file_creations = 0
         num_access_files = 0
-
+        num_shells = 0
+        num_outbound_cmds = 0
+        host_login = 0
+        guest_login = 0
+        protocol_name = ""  # Initialize protocol_name here
+        
         # Extract information from the packet
         if IP in pack:
             protocol_number = pack[IP].proto
-            protocol_type = protocol_names.get(protocol_number, 'Unknown')
-            # Check for wrong fragments
-            if pack[IP].flags & 0x01 and pack[IP].flags & 0x02:  # Check if both DF and MF flags are set
-                wrong_fragment = 1
-            else:
-                wrong_fragment = 0
+            protocol_type = protocol_dictionary_number.get(protocol_number)
+            protocol_name = protocol_dictionary_name.get(protocol_number)
+            src_bytes = len(pack[protocol_name].payload)
+            dst_bytes = len(pack[IP].payload)
+            land = 1 if pack[IP].sport == pack[IP].dport else 0     # Check if source port equals destination port
+            wrong_fragment = 1 if pack[IP].flags & 0x01 and pack[IP].flags & 0x02 else 0    # Check if both DF and MF flags are set
             
-            # Check if source port equals destination port
-            land = 1 if pack[TCP].sport == pack[TCP].dport else 0
-            
-            # Extract service name based on destination port
-            service_port = pack[TCP].dport
-            service = service_names.get(service_port, 'other')
-            
-            # Extract individual TCP flags
-            flags = ""
-            if pack[TCP].flags & 0x02:
-                flags += "S"  # SYN flag
-            if pack[TCP].flags & 0x04:
-                flags += "F"  # FIN flag
-            if pack[TCP].flags & 0x01:
-                flags += "F"  # FIN flag
-            if pack[TCP].flags & 0x08:
-                flags += "P"  # PSH flag
-            if pack[TCP].flags & 0x10:
-                flags += "R"  # RST flag
-            if pack[TCP].flags & 0x20:
-                flags += "A"  # ACK flag
-            if pack[TCP].flags & 0x40:
-                flags += "U"  # URG flag
-            
-            # Check for urgent flag
-            urgent_flag = 1 if pack[TCP].flags & 0x20 else 0
+            if protocol_name == 'TCP' and TCP in pack:  # Check for TCP Urgent Pointer flag (URG)
+                urgent_flag = 1 if pack[TCP].flags & 0x20 else 0  # Check if URG bit is set
 
             # Check for hot hints
-            if detect_hot_hint(pack):
+            if detect_hot_hint(pack, protocol_name):  # Pass protocol_name as an argument
                 hot_hint_count += 1
             
             # Count failed login attempts and check for "su" attempts
             num_failed_logins, Logged_In, su_attempted = count_failed_logins(pack)
-            src_bytes = len(pack[TCP].payload)
-            dst_bytes = len(pack[IP].payload)
-            num_root = count_root_accesses(pack)
 
             # Assuming system toolbox is opened through port 22 (SSH)
-            if pack[TCP].dport == 22:
-                root_shell = 1
-
-            # Increment num_file_creations if packet indicates file creation operation
-            if packet_indicates_file_creation(pack):
-                num_file_creations += 1
+            root_shell = 1 if pack[protocol_name].dport == 22 else 0
+                
+            num_root = count_root_accesses(pack, protocol_name)  # Pass protocol_name as an argument
             
-            # Count the number of file access operations
-            num_access_files = count_file_accesses(pack)
+            # Increment num_file_creations if packet indicates file creation operation
+            num_file_creations = packet_indicates_file_creation(pack)
 
-            num_shells = count_shell_accesses(pack)
+            num_shells = count_shell_accesses(pack, protocol_name)  # Pass protocol_name as an argument
+
+            # Count the number of file access operations
+            num_access_files = count_file_accesses(pack, protocol_name)
+
+            guest_login = is_guest_login(pack)
 
         # Construct the response string
-        response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nService: {service}\nFlags: {flags}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\n"
+        response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\n"
         # Print the extracted information to the command prompt
         print(response)
 
