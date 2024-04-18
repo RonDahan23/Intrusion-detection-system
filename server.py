@@ -21,6 +21,7 @@ protocol_dictionary_name = {
 
 # Define a dictionary to store the timestamps of connections to each destination host
 connection_timestamps = defaultdict(list)
+service_timestamps = defaultdict(list)
 
 # Function to count the number of shell accesses
 def count_shell_accesses(packet, protocol_name):  # Pass protocol_name as an argument
@@ -153,25 +154,33 @@ def is_guest_login(packet):
     
     return 0  # No indication of guest login
 
-def count_connections_to_same_host(packet):
+def count_connections(packet):
     try:
-        # Get the destination IP address
         destination_ip = packet[IP].dst
+        destination_port = packet[IP].dport
         
-        # Get the current timestamp
         current_timestamp = time.time()
         
-        # Remove timestamps older than two seconds
+        # Remove timestamps older than two seconds for host connections
         connection_timestamps[destination_ip] = [ts for ts in connection_timestamps[destination_ip] if current_timestamp - ts <= 2]
         
-        # Add the current timestamp
+        # Add the current timestamp for host connections
         connection_timestamps[destination_ip].append(current_timestamp)
         
-        # Return the count of connections to the same host in the past two seconds
-        return len(connection_timestamps[destination_ip])
+        # Remove timestamps older than two seconds for service connections
+        service_timestamps[destination_port] = [ts for ts in service_timestamps[destination_port] if current_timestamp - ts <= 2]
+        
+        # Add the current timestamp for service connections
+        service_timestamps[destination_port].append(current_timestamp)
+
+        count = len(connection_timestamps[destination_ip])
+        service_count = len(service_timestamps[destination_port])
+        
+        return count, service_count
     except Exception as e:
-        print(f"Error counting connections to same host: {e}")
-        return 0
+        print(f"Error counting connections: {e}")
+        return 0, 0
+
 
 @app.route('/', methods=['GET'])
 def get_packet_info():
@@ -200,6 +209,7 @@ def get_packet_info():
         host_login = 0
         guest_login = 0
         count = 0
+        srv_count = 0
         protocol_name = ""  #
         
         # Extract information from the packet
@@ -237,9 +247,9 @@ def get_packet_info():
 
             guest_login = is_guest_login(pack)
 
-            count = count_connections_to_same_host(pack)
-        
-        response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\n\n"
+            count, srv_count = count_connections(pack)
+
+            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\n"
 
         # Print the extracted information to the command prompt
         print(response)
