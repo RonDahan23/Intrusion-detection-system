@@ -1,8 +1,10 @@
 from flask import Flask
 from scapy.all import *
 import time
+from collections import defaultdict
 
 app = Flask(__name__)
+
 
 # Dictionary to map protocol numbers to names
 protocol_dictionary_number = {
@@ -16,6 +18,10 @@ protocol_dictionary_name = {
     17: 'UDP', 
     1: 'ICMP' 
 }
+
+# Define a dictionary to store the timestamps of connections to each destination host
+connection_timestamps = defaultdict(list)
+
 # Function to count the number of shell accesses
 def count_shell_accesses(packet, protocol_name):  # Pass protocol_name as an argument
     try:
@@ -55,7 +61,6 @@ def packet_indicates_file_creation(packet):
     except Exception as e:
         print(f"Error processing packet for file creation: {e}")
         return 0  # Return 0 if there's an error
-
 
 # Function to count the number of accesses to the root
 def count_root_accesses(packet, protocol_name):  # Pass protocol_name as an argument
@@ -130,9 +135,6 @@ def count_file_accesses(packet, protocol_name):
         return 0  # Return 0 if there's an error
 
 def is_guest_login(packet):
-    """
-    Check if the packet payload indicates a guest login based on variations.
-    """
     try:
         # Check if the packet contains a payload
         if Raw in packet:
@@ -140,19 +142,36 @@ def is_guest_login(packet):
             payload = packet[Raw].load.decode('utf-8')
             
             # Define variations or patterns indicating guest login
-            guest_variations = ["guest", "anonymous", "anon", "guestuser", "anonuser", "public"]  # Add more variations as needed
+            guest_variations = ["guest", "anonymous", "anon", "guestuser", "anonuser"]  # Add more variations as needed
 
             # Check if any of the variations are present in the payload
             if any(variation in payload.lower() for variation in guest_variations):
                 return 1  # Indicate guest login
-
     except Exception as e:
         # Handle decoding errors
         print(f"Error decoding payload: {e}")
     
     return 0  # No indication of guest login
 
-
+def count_connections_to_same_host(packet):
+    try:
+        # Get the destination IP address
+        destination_ip = packet[IP].dst
+        
+        # Get the current timestamp
+        current_timestamp = time.time()
+        
+        # Remove timestamps older than two seconds
+        connection_timestamps[destination_ip] = [ts for ts in connection_timestamps[destination_ip] if current_timestamp - ts <= 2]
+        
+        # Add the current timestamp
+        connection_timestamps[destination_ip].append(current_timestamp)
+        
+        # Return the count of connections to the same host in the past two seconds
+        return len(connection_timestamps[destination_ip])
+    except Exception as e:
+        print(f"Error counting connections to same host: {e}")
+        return 0
 
 @app.route('/', methods=['GET'])
 def get_packet_info():
@@ -171,7 +190,7 @@ def get_packet_info():
         hot_hint_count = 0
         num_failed_logins = 0
         Logged_In = 0
-        root_shell = 0  # Initialize root_shell variable
+        root_shell = 0 
         su_attempted = 0
         num_root = 0
         num_file_creations = 0
@@ -180,7 +199,8 @@ def get_packet_info():
         num_outbound_cmds = 0
         host_login = 0
         guest_login = 0
-        protocol_name = ""  # Initialize protocol_name here
+        count = 0
+        protocol_name = ""  #
         
         # Extract information from the packet
         if IP in pack:
@@ -217,16 +237,18 @@ def get_packet_info():
 
             guest_login = is_guest_login(pack)
 
-        # Construct the response string
-        response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\n"
+            count = count_connections_to_same_host(pack)
+        
+        response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\n\n"
+
         # Print the extracted information to the command prompt
         print(response)
 
-        # Return an empty response since we are printing to cmd directly
         return ''
     except Exception as e:
         print(f"Error processing packet: {e}")
         return 'Error processing packet'  # Return error message if there's an exception
+
     
 if __name__ == '__main__':
     # Change the host parameter to the desired IP address
