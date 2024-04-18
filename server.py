@@ -181,7 +181,23 @@ def count_connections(packet):
         print(f"Error counting connections: {e}")
         return 0, 0
 
-
+def Serror_rate_calculate(packet, count):
+    try:
+        if count > 0:
+            total_s_flags = 0
+            if packet[TCP].flags & 0x01:  # Check if FIN flag is set
+                total_s_flags += 1
+            if packet[TCP].flags & 0x02:  # Check if SYN flag is set
+                total_s_flags += 1
+            if packet[TCP].flags & 0x04:  # Check if RST flag is set
+                total_s_flags += 1
+            if packet[TCP].flags & 0x08:  # Check if PSH flag is set
+                total_s_flags += 1
+            return total_s_flags / count
+    except Exception as e:
+        print(f"Error counting connections: {e}")
+        return 0
+    
 @app.route('/', methods=['GET'])
 def get_packet_info():
     try:
@@ -249,7 +265,9 @@ def get_packet_info():
 
             count, srv_count = count_connections(pack)
 
-            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\n"
+            Serror_rate = Serror_rate_calculate(pack, count)
+
+            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\n"
 
         # Print the extracted information to the command prompt
         print(response)
