@@ -44,5 +44,5 @@ class DeadlyBooring():
 
 
 if __name__ == "__main__":
-    dos = DeadlyBooring("172.31.37.161", 5000, socketsCount=200)
+    dos = DeadlyBooring("172.31.37.161", 5000, socketsCount=500)
     dos.attack(timeout=60*10)
