@@ -185,44 +185,58 @@ def Serror_rate_calculate(packet, count, srv_count):
     try:
         total_s_flags_by_count = 0
         total_s_flags_by_srv_count = 0
-        if count > 0: 
-            if packet[TCP].flags & 0x01:  # Check if FIN flag is set
-                total_s_flags_by_count += 1
-            if packet[TCP].flags & 0x02:  # Check if SYN flag is set
-                total_s_flags_by_count += 1
-            if packet[TCP].flags & 0x04:  # Check if RST flag is set
-                total_s_flags_by_count += 1
-            if packet[TCP].flags & 0x08:  # Check if PSH flag is set
-                total_s_flags_by_count += 1
+        
+        if count > 0:
+            if packet.haslayer(TCP):
+                if packet[TCP].flags & 0x01:  # Check if FIN flag is set
+                    total_s_flags_by_count += 1
+                if packet[TCP].flags & 0x02:  # Check if SYN flag is set
+                    total_s_flags_by_count += 1
+                if packet[TCP].flags & 0x04:  # Check if RST flag is set
+                    total_s_flags_by_count += 1
+                if packet[TCP].flags & 0x08:  # Check if PSH flag is set
+                    total_s_flags_by_count += 1
 
         if srv_count > 0:
-            
-            if packet[TCP].flags & 0x01:  # Check if FIN flag is set
-                total_s_flags_by_srv_count += 1
-            if packet[TCP].flags & 0x02:  # Check if SYN flag is set
-                total_s_flags_by_srv_count += 1
-            if packet[TCP].flags & 0x04:  # Check if RST flag is set
-                total_s_flags_by_srv_count += 1
-            if packet[TCP].flags & 0x08:  # Check if PSH flag is set
-                total_s_flags_by_srv_count += 1
+            if packet.haslayer(TCP):
+                if packet[TCP].flags & 0x01:  # Check if FIN flag is set
+                    total_s_flags_by_srv_count += 1
+                if packet[TCP].flags & 0x02:  # Check if SYN flag is set
+                    total_s_flags_by_srv_count += 1
+                if packet[TCP].flags & 0x04:  # Check if RST flag is set
+                    total_s_flags_by_srv_count += 1
+                if packet[TCP].flags & 0x08:  # Check if PSH flag is set
+                    total_s_flags_by_srv_count += 1
 
-        return total_s_flags_by_count/count ,total_s_flags_by_srv_count / srv_count
-    except Exception as e:
-        print(f"Error counting connections: {e}")
-        return 0, 0
-    
-
-def Check_REJ_by_count(packet, count):
-    try:
-        check_flag_REJ = 0
-        if count > 0: 
-            if packet[TCP].flags & 0x10:  # Check if FIN flag is set
-                check_flag_REJ += 1
-            return check_flag_REJ/count 
+        return (
+            total_s_flags_by_count / count if count > 0 else 0,
+            total_s_flags_by_srv_count / srv_count if srv_count > 0 else 0
+        )
         
     except Exception as e:
-        print(f"Error Check_REJ_by_count: {e}")
-        return 0
+        print(f"Error in Serror_rate_calculate: {e}")
+        return 0, 0
+
+def Check_REJ(packet, count, srv_count):
+    try:
+        check_flag_REJ_by_count = 0
+        check_flag_REJ_by_srv_count = 0
+        
+        if count > 0:
+            if packet.haslayer(TCP) and packet[TCP].flags & 0x10: 
+                check_flag_REJ_by_count += 1
+                
+        if srv_count > 0:
+            if packet.haslayer(TCP) and packet[TCP].flags & 0x10:
+                check_flag_REJ_by_srv_count += 1
+                
+        return (
+            check_flag_REJ_by_count / count if count > 0 else 0,
+            check_flag_REJ_by_srv_count / srv_count if srv_count > 0 else 0
+        )      
+    except Exception as e:
+        print(f"Error in Check_REJ: {e}")
+        return 0, 0
     
 
 @app.route('/', methods=['GET'])
@@ -256,6 +270,7 @@ def get_packet_info():
         Serror_rate = 0
         Srv_serror_rate = 0
         Rerror_rate = 0
+        Srv_Rerror_rate = 0
         protocol_name = ""  #
         
         # Extract information from the packet
@@ -297,9 +312,9 @@ def get_packet_info():
 
             Serror_rate, Srv_serror_rate = Serror_rate_calculate(pack, count, srv_count)
 
-            Rerror_rate = Check_REJ_by_count(pack, count)
+            Rerror_rate, Srv_Rerror_rate = Check_REJ(pack, count, srv_count)
 
-            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\n"
+            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\nSrv_Rerror_rate: {Srv_Rerror_rate}\n"
 
         # Print the extracted information to the command prompt
         print(response)
