@@ -239,6 +239,22 @@ def Check_REJ(packet, count, srv_count):
         return 0, 0
     
 
+def calculate_diff_srv_rate(packet_data, count):
+    try:
+        # Extract the service information from the packet data
+        service_info = [(packet[IP].dport, packet[TCP].sport) for packet in packet_data if IP in packet and TCP in packet]
+        # Count the number of connections to different services
+        different_services_count = len(set(service_info))
+        # Calculate Diff_srv_rate
+        diff_srv_rate = (different_services_count / count)
+
+        return diff_srv_rate
+    except Exception as e:
+        print("An error occurred:", e)
+        return 0
+
+
+
 @app.route('/', methods=['GET'])
 def get_packet_info():
     try:
@@ -272,7 +288,8 @@ def get_packet_info():
         Rerror_rate = 0
         Srv_Rerror_rate = 0
         Same_srv_rate = 0
-        protocol_name = ""  #
+        Diff_srv_rate = 0
+        protocol_name = ""  
         
         # Extract information from the packet
         if IP in pack:
@@ -317,9 +334,9 @@ def get_packet_info():
 
             Same_srv_rate = srv_count / count if count > 0 else 0
 
-            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\nSrv_Rerror_rate: {Srv_Rerror_rate}\nSame_srv_rate: {Same_srv_rate}\n"
+            Diff_srv_rate = calculate_diff_srv_rate(pack, count)
             
-        # Print the extracted information to the command prompt
+            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\nSrv_Rerror_rate: {Srv_Rerror_rate}\nSame_srv_rate: {Same_srv_rate}\nDiff_srv_rate: {Diff_srv_rate}\n\n\n"        # Print the extracted information to the command prompt
         print(response)
 
         return ''
