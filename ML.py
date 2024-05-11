@@ -2,9 +2,9 @@ import tensorflow as tf
 import numpy as np
 from sklearn.metrics import classification_report, ConfusionMatrixDisplay
 
-model = tf.keras.models.load_model("/home/ron/ids_projetc/model")
-X_Test = np.load("/home/ron/ids_projetc/model/np_X_Test.npy")
-y_Test = np.load("/home/ron/ids_projetc/model/np_y_Test.npy")
+model = tf.keras.models.load_model("/home/ron/Intrusion-detection-system/model")
+X_Test = np.load("/home/ron/Intrusion-detection-system/model/np_X_Test.npy")
+y_Test = np.load("/home/ron/Intrusion-detection-system/model/np_y_Test.npy")
 
 preds = model.predict(X_Test)
 y_pred = tf.where(preds < 0.5, 0, 1).numpy()
