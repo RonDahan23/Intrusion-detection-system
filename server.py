@@ -72,13 +72,6 @@ def count_root_accesses(packet, protocol_name):
         print(f"Error counting root accesses: {e}")
         return 0 
 
-# Define the pattern or condition for detecting hot hints
-def detect_hot_hint(packet, protocol_name):  
-    if protocol_name in packet and packet[protocol_name].options and ('hot_hint_flag', None) in packet[protocol_name].options:
-        return True
-    else:
-        return False
-
 # Function to count failed login attempts and check for "su" attempts
 def count_failed_logins(packet):
     try:
@@ -132,6 +125,17 @@ def is_guest_login(packet):
     except Exception as e:
         print(f"Error decoding payload: {e}")
     return 0  
+
+def is_host_login(packet):
+    try:
+        if Raw in packet:
+            payload = packet[Raw].load.decode('utf-8')
+            suspicious_variations = ["root", "admin", "administrator"]
+            if any(variation in payload.lower() for variation in suspicious_variations):
+                return 1
+    except Exception as e:
+        print(f"Error decoding payload: {e}")
+    return 0
 
 unique_destination_hosts = set()
 def count_connections(packet):
@@ -232,19 +236,15 @@ def calculate_Srv_diff_host_rate(count, srv_count):
 
 @app.route('/', methods=['GET'])
 
+
 def get_packet_info():
+    
     try:
         received_time = time.time()
         pack = Ether() / IP(flags="MF") / TCP() / UDP() / ICMP()        
         duration = int(time.time() - received_time)
         protocol_name = ""  
-        hot_hint_count = 0  #need to check 
-        host_login = 0 #need to check
 
-        num_outbound_cmds = 0   #need to check 
-
-        
-        
         # Extract information from the packet
         if IP in pack:
             protocol_number = pack[IP].proto
@@ -257,9 +257,6 @@ def get_packet_info():
             
             if protocol_name == 'TCP' and TCP in pack:  
                 urgent_flag = 1 if pack[TCP].flags & 0x20 else 0  
-
-            if detect_hot_hint(pack, protocol_name):  
-                hot_hint_count += 1
 
             num_failed_logins, Logged_In, su_attempted = count_failed_logins(pack)
 
@@ -275,6 +272,8 @@ def get_packet_info():
 
             guest_login = is_guest_login(pack)
 
+            host_login = is_host_login(pack)
+
             count, srv_count = count_connections(pack)
 
             Serror_rate, Srv_serror_rate = Serror_rate_calculate(pack, count, srv_count)
@@ -289,13 +288,14 @@ def get_packet_info():
 
             dst_host_count = len(unique_destination_hosts)
 
-            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nHot Hint Count: {hot_hint_count}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files: {num_access_files}\nNum Outbound Commands: {num_outbound_cmds}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\nSrv_Rerror_rate: {Srv_Rerror_rate}\nSame_srv_rate: {Same_srv_rate}\nDiff_srv_rate: {Diff_srv_rate}\nSrv_diff_host_rate: {Srv_diff_host_rate}\ndst_host_count: {dst_host_count}\n\n"        # Print the extracted information to the command prompt
+            response = f"\nDuration: {duration}\nProtocol Type: {protocol_type}\nSource Bytes: {src_bytes}\nDestination Bytes: {dst_bytes}\nLand: {land}\nWrong Fragment: {wrong_fragment}\nUrgent Flag: {urgent_flag}\nNum Failed Logins: {num_failed_logins}\nLogged in: {Logged_In}\nRoot Shell: {root_shell}\nsu_attempted: {su_attempted}\nNum Root: {num_root}\nnum_file_creations: {num_file_creations}\nnum_shells: {num_shells}\nNum Access Files:{num_access_files}\nIs Host Login: {host_login}\nIs Guest Login: {guest_login}\ncount: {count}\nsrv_count: {srv_count}\nSerror_rate {Serror_rate}\nSrv_serror_rate: {Srv_serror_rate}\nRerror_rate: {Rerror_rate}\nSrv_Rerror_rate: {Srv_Rerror_rate}\nSame_srv_rate: {Same_srv_rate}\nDiff_srv_rate: {Diff_srv_rate}\nSrv_diff_host_rate: {Srv_diff_host_rate}\ndst_host_count: {dst_host_count}\n\n"
         print(response)
 
         return ''
     except Exception as e:
         print(f"Error processing packet: {e}")
         return 'Error processing packet'
+
 
     
 if __name__ == '__main__':
