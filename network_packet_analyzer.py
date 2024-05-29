@@ -18,16 +18,14 @@ class NetworkPacketAnalyzer:
             print(f"Error counting shell accesses: {e}")
             return 0
 
-    def packet_indicates_file_creation(self, packet):
+    def packet_indicates_file_creation(self, data):
         try:
             file_creation_count = 0
-            if Raw in packet:
-                payload = packet[Raw].load
-                if isinstance(payload, bytes):
-                    payload = payload.decode('utf-8', errors='ignore')  # Add errors='ignore'
-                    file_creation_patterns = ["create file", "new file created", "file creation"]
-                    for pattern in file_creation_patterns:
-                        file_creation_count += payload.count(pattern)
+            data = data.lower()
+            file_creation_patterns = ["create file", "new file created", "file creation", "create"]
+            for pattern in file_creation_patterns:
+                if data == pattern:
+                    file_creation_count += 1
             return file_creation_count
         except Exception as e:
             print(f"Error processing packet for file creation: {e}")
@@ -43,24 +41,16 @@ class NetworkPacketAnalyzer:
             print(f"Error counting root accesses: {e}")
             return 0
 
-    def count_failed_logins(self, packet, data):
+    def count_failed_logins(self, data):
         try:
-            su_attempted = 0
-            if Raw in packet:
-                payload = packet[Raw].load
-                if isinstance(payload, bytes):
-                    payload = payload.decode('utf-8', errors='ignore')
-                    failed_login_pattern = "Failed login attempt"
-                    successful_login_pattern = "logged in"
-                    su_attempt_pattern = "su:"
-                    num_failed_logins = payload.count(failed_login_pattern)
-                    successful_login = 1 if successful_login_pattern in payload else 0
-                    su_attempted = 1 if su_attempt_pattern in payload else 0
-                    return num_failed_logins, successful_login, su_attempted
-                else:
-                    return 0, 0, 0
-            else:
-                return 0, 0, 0
+            num_failed_logins = 0
+            failed_login_pattern = "Failed login attempt"
+            successful_login_pattern = "logged in"
+            su_attempt_pattern = "su:"
+            num_failed_logins += 1 if data == failed_login_pattern else 0
+            successful_login = 1 if data == successful_login_pattern else 0
+            su_attempted = 1 if data == su_attempt_pattern else 0
+            return num_failed_logins, successful_login, su_attempted
         except Exception as e:
             print(f"Error processing packet from count_failed_logins: {e}")
             return 0, 0, 0
@@ -77,8 +67,6 @@ class NetworkPacketAnalyzer:
 
     def is_guest_login(self, data):
         try:
-            print("the data is:" + data)
-            print("/n/n/n")
             guest_variations = ["guest", "anonymous", "anon", "guestuser", "anonuser"]
             for variation in guest_variations:
                 if data.lower() == variation:
@@ -87,12 +75,11 @@ class NetworkPacketAnalyzer:
             print(f"Error decoding payload: {e}")
         return 0
 
-    def is_host_login(self, packet):
+    def is_host_login(self, data):
         try:
             suspicious_variations = ["root", "admin", "administrator"]
-            if isinstance(packet, bytes):
-                payload = packet.decode('utf-8', )
-                if any(variation in payload.lower() for variation in suspicious_variations):
+            for variation in suspicious_variations:
+                if data.lower() == variation:
                     return 1
         except Exception as e:
             print(f"Error decoding payload: {e}")
