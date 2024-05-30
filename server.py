@@ -230,16 +230,6 @@ def calculate_Srv_diff_host_rate(count, srv_count):
         print(f"Error calculating Srv_diff_host_rate: {e}")
         return 0
 
-# TAL ADDED
-# def dissect(self, s):
-#     s = self.pre_dissect(s)
-#     s = self.do_dissect(s)
-#     s = self.post_dissect(s)
-#     payl,pad = self.extract_padding(s)
-#     self.do_dissect_payload(payl)
-#     if pad and conf.padding:
-#         self.add_payload(Padding(pad))
-
 def get_packet_info(packet):
     try:
         received_time = time.time()
