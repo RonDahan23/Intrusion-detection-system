@@ -45,14 +45,15 @@ def DOS_sequence():
 def U2R_sequence():
 
     print_list = [
-        "| |  | |__ \|  __ \      /\  | | | |           | |        []          []     ",
-        "| |  | |  ) | |__) |    /  \ | |_| |_ __ _  ___| | __      \  _---_  /        ",
-        "| |  | | / /|  _  /    / /\ \| __| __/ _` |/ __| |/ /       \/     \/         ", 
-        "| |__| |/ /_| | \ \   / ____ \ |_| || (_| | (__|   <         |() ()|          ",
-        " \____/|____|_|  \_\ /_/    \_\__|\__\__,_|\___|_|\_\         \ + /           ", 
-        "                                                             / HHH  \         ",
-        "                                                            /  \_/   \        ",  
-        "                                                          []          []      "]
+        " _    _ ___  _____              _   _             _                             ",
+        "| |  | |__ \|  __ \        /\  | | | |           | |        []          []      ",
+        "| |  | |  ) | |__) |      /  \ | |_| |_ __ _  ___| | __      \  _---_  /        ",
+        "| |  | | / /|  _  /      / /\ \| __| __/ _` |/ __| |/ /       \/     \/         ", 
+        "| |__| |/ /_| | \ \     / ____ \ |_| || (_| | (__|   <         |() ()|          ",
+        " \____/|____|_|  \_\   /_/    \_\__|\__\__,_|\___|_|\_\         \ + /           ", 
+        "                                                               / HHH  \         ",
+        "                                                              /  \_/   \        ",  
+        "                                                            []          []      "]
     print("\n")
     time.sleep(0.1)
     for line in print_list:
@@ -82,7 +83,9 @@ def DosExp():
                 print("Invalid input")
             os.system('cls' if os.name == 'nt' else 'clear')
         elif command == "2":
-            print("A Denial of Service (DoS) attack is a malicious attempt to disrupt the normal functioning of a targeted server, service, or network by overwhelming it with a flood of superfluous requests. This overload prevents legitimate requests from being processed, effectively denying access to legitimate users. Variants include Distributed Denial of Service (DDoS) attacks, where the traffic comes from multiple sources, making mitigation more challenging.")
+            print("A Denial of Service (DoS) attack is a malicious attempt to disrupt the normal functioning of a targeted server, service, or network by overwhelming it with a flood of superfluous requests.")
+            print("This overload prevents legitimate requests from being processed, effectively denying access to legitimate users.")
+            print("Variants include Distributed Denial of Service (DDoS) attacks, where the traffic comes from multiple sources, making mitigation more challenging.")
             commandReturn = input("\n\n\n[1]. Return ")
             if commandReturn == "1":
                 os.system('cls' if os.name == 'nt' else 'clear')
@@ -118,7 +121,8 @@ def U2RExp():
             os.system('cls' if os.name == 'nt' else 'clear')
 
         elif command == "2":
-            print("User-to-Root (U2R) attacks have the objective of a non-privileged user acquiring root or admin-user access on a specific computer or a system on which the intruder had user-level access. Remote-to-Local (R2L) attacks involve sending packets to the victim machine.")
+            print("User-to-Root (U2R) attacks have the objective of a non-privileged user acquiring root or admin-user access on a specific computer or a system on which the intruder had user-level access.")
+            print("Remote-to-Local (R2L) attacks involve sending packets to the victim machine.")
             commandReturn = input("\n\n\n[1]. Return ")
             if commandReturn == "1":
                 os.system('cls' if os.name == 'nt' else 'clear')

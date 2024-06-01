@@ -42,10 +42,3 @@ class Attacks:
             exit("\033[1;34m [-]Canceled By User \033[1;m")
         except requests.RequestException as e:
             print("Request failed:", e)
-
-
-        
-
-
-            
-
