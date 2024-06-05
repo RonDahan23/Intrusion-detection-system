@@ -187,19 +187,14 @@ class NetworkPacketAnalyzer:
 
     def update_ip_connection_count(self, ip_address, ip_database):
         try:
-            # Check if the IP address exists in the database
             if ip_address in ip_database:
-                # Increment the connection count for the IP address by 1
                 ip_database[ip_address] += 1
             else:
-                # If the IP address is not in the database, add it with a count of 1
                 ip_database[ip_address] = 1
             
-            # Ensure that the connection count is never smaller than 1
             if ip_database[ip_address] < 1:
                 ip_database[ip_address] = 1
             
-            # Return the updated database (optional)
             return ip_database[ip_address]
         except ip_database as e:
             print(f"An error occurred: {e}")
@@ -208,19 +203,14 @@ class NetworkPacketAnalyzer:
 
     def update_port_connection_count(self, port_number, port_database):
         try:
-            # Check if the port number exists in the database
             if port_number in port_database:
-                # Increment the connection count for the port number by 1
                 port_database[port_number] += 1
             else:
-                # If the port number is not in the database, add it with a count of 1
                 port_database[port_number] = 1
             
-            # Ensure that the connection count is never smaller than 1
             if port_database[port_number] < 1:
                 port_database[port_number] = 1
             
-            # Return the updated database (optional)
             return port_database[port_number]
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -229,42 +219,28 @@ class NetworkPacketAnalyzer:
 
     def update_connection(self, connection_database, ip_address, port_number, Dst_host_serror_rate, Dst_host_srv_serror_rate, Dst_host_rerror_rate, Dst_host_srv_rerror_rate):
         try:
-            # Check if the IP address exists in the database
             if ip_address not in connection_database:
-                # If the IP address doesn't exist, add it to the database with the port number and a count of 1
                 connection_database[ip_address] = {port_number: 1}
             else:
-                # If the IP address exists, check if the port number exists for that IP
                 if port_number not in connection_database[ip_address]:
-                    # If the port number doesn't exist, add it to the database with a count of 1
                     connection_database[ip_address][port_number] = 1
                 else:
-                    # If the port number exists, increment its count by 1
                     connection_database[ip_address][port_number] += 1
-            
-            # Initialize error rate keys if they don't exist and the provided rates are 0
-            if Dst_host_serror_rate == 0 and 'Dst_host_serror_rate' not in connection_database[ip_address]:
-                connection_database[ip_address]['Dst_host_serror_rate'] = 0
-            if Dst_host_srv_serror_rate == 0 and 'Dst_host_srv_serror_rate' not in connection_database[ip_address]:
-                connection_database[ip_address]['Dst_host_srv_serror_rate'] = 0
-            if Dst_host_rerror_rate == 0 and 'Dst_host_rerror_rate' not in connection_database[ip_address]:
-                connection_database[ip_address]['Dst_host_rerror_rate'] = 0
-            if Dst_host_srv_rerror_rate == 0 and 'Dst_host_srv_rerror_rate' not in connection_database[ip_address]:
-                connection_database[ip_address]['Dst_host_srv_rerror_rate'] = 0
 
-            # Check and update Dst_host_serror_rate
+            connection_database[ip_address].setdefault('Dst_host_serror_rate', 0)
+            connection_database[ip_address].setdefault('Dst_host_srv_serror_rate', 0)
+            connection_database[ip_address].setdefault('Dst_host_rerror_rate', 0)
+            connection_database[ip_address].setdefault('Dst_host_srv_rerror_rate', 0)
+
             if Dst_host_serror_rate > 0:
                 connection_database[ip_address]['Dst_host_serror_rate'] += 1
 
-            # Check and update Dst_host_srv_serror_rate
             if Dst_host_srv_serror_rate > 0:
                 connection_database[ip_address]['Dst_host_srv_serror_rate'] += 1
 
-            # Check and update Dst_host_rerror_rate
             if Dst_host_rerror_rate > 0:
                 connection_database[ip_address]['Dst_host_rerror_rate'] += 1
 
-            # Check and update Dst_host_srv_rerror_rate
             if Dst_host_srv_rerror_rate > 0:
                 connection_database[ip_address]['Dst_host_srv_rerror_rate'] += 1
 
@@ -274,7 +250,7 @@ class NetworkPacketAnalyzer:
             return 0
 
 
-    def check_flags_in_packet(self, packet, ):
+    def check_flags_in_packet(self, packet):
         try:
             total_s_flags_by_dst_host_count = 0
             total_s_flags_by_dst_host_srv_count = 0
