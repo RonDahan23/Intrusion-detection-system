@@ -274,7 +274,7 @@ class NetworkPacketAnalyzer:
             return 0
 
 
-    def check_flags_in_packet(self, packet):
+    def check_flags_in_packet(self, packet, ):
         try:
             total_s_flags_by_dst_host_count = 0
             total_s_flags_by_dst_host_srv_count = 0
@@ -297,66 +297,8 @@ class NetworkPacketAnalyzer:
                     check_flag_REJ_by_dst_host_count += 1
                     check_flag_REJ_by_dst_host_srv_count += 1
 
-            return (
-                total_s_flags_by_dst_host_count,
-                total_s_flags_by_dst_host_srv_count,
-                check_flag_REJ_by_dst_host_count,
-                check_flag_REJ_by_dst_host_srv_count
-            )
+            return total_s_flags_by_dst_host_count, total_s_flags_by_dst_host_srv_count,check_flag_REJ_by_dst_host_count, check_flag_REJ_by_dst_host_srv_count
         except Exception as e:
             print(f"Error processing packet: {e}")
             return 0, 0, 0, 0
-
         
-# def check_tcp_flags(self, tcp_flags):
-#     if tcp_flags == 0x00:  # No flags set (S0)
-#         return "S0"
-#     elif tcp_flags == 0x01:  # FIN flag (SH)
-#         return "SH"
-#     elif tcp_flags == 0x02:  # SYN flag (SF)
-#         return "SF"
-     
-#     elif tcp_flags == 0x04:  # RST flag (RSTR)
-#         return "RSTR"
-
-#     elif tcp_flags == 0x05:  # RST+ACK flag (RSTO)
-#         return "RSTO"
-#     elif tcp_flags == 0x01:  # SYN+FIN flag (S1)
-#         return "S1"
-#     elif tcp_flags == 0x02:  # SYN+RST flag (S2)
-#         return "S2"
-#     elif tcp_flags == 0x04:  # SYN+RST flag (S3)
-#         return "S3"
-#     elif tcp_flags == 0x14:  # RST+SYN+ACK flag (RSTOS0)
-#         return "RSTOS0"
-#     else:  # Other flags (OTH)
-#         return "OTH"
-
-
-
-
-# tcp_flags_names = {
-#     0x00: 'No flags set (S0)',
-#     0x01: 'FIN flag (SH)',
-#     0x02: 'SYN flag (SF)',
-#     0x04: 'RST flag (RSTR)',
-#     0x05: 'RST+ACK flag (RSTO)',
-#     0x06: 'SYN+ACK flag',
-#     0x08: 'PSH flag',
-#     0x09: 'ACK+PSH flag',
-#     0x0A: 'FIN+PSH flag',
-#     0x10: 'ACK flag',
-#     0x11: 'FIN+ACK flag',
-#     0x12: 'ACK+URG flag',
-#     0x14: 'RST+SYN+ACK flag (RSTOS0)',
-#     0x18: 'PSH+URG flag',
-#     0x19: 'ACK+PSH+URG flag',
-#     0x1A: 'FIN+PSH+URG flag',
-#     0x20: 'URG flag',
-#     0x21: 'ACK+URG flag',
-#     0x22: 'FIN+URG flag',
-#     0x24: 'RST+ACK+URG flag',
-#     0x28: 'PSH+ACK+URG flag',
-#     0x29: 'ACK+PSH+URG flag',
-#     0x2A: 'FIN+PSH+URG flag'
-# }
