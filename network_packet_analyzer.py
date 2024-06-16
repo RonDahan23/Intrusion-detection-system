@@ -5,7 +5,7 @@ import time
 Dst_host_serror_rate = 0
 Dst_host_srv_serror_rate = 0
 Dst_host_rerror_rate = 0
-Dst_host_srv_rerror_rate =0
+Dst_host_srv_rerror_rate = 0
 
 class NetworkPacketAnalyzer:
     def __init__(self):
@@ -17,7 +17,7 @@ class NetworkPacketAnalyzer:
     def count_shell_accesses(self, packet, protocol_name):
         try:
             num_shells = 0
-            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:
+            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:     #assum
                 num_shells += 1
             return num_shells
         except Exception as e:
@@ -40,7 +40,7 @@ class NetworkPacketAnalyzer:
     def count_root_accesses(self, packet, protocol_name):
         try:
             num_root = 0
-            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:
+            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 22:    #assum
                 num_root += 1
             return num_root
         except Exception as e:
@@ -62,7 +62,7 @@ class NetworkPacketAnalyzer:
     def count_file_accesses(self, packet, protocol_name):
         try:
             num_access_files = 0
-            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 21:
+            if IP in packet and protocol_name in packet and packet[protocol_name].dport == 21:  #assum
                 num_access_files += 1
             return num_access_files
         except Exception as e:

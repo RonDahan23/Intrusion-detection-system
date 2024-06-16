@@ -58,7 +58,6 @@ def packet_sniffer(packet, data, received_time):
             flags = packet[TCP].sprintf('%TCP.flags%')
             for state, info in dictionarys.TCP_STATES.items():
                 if all(f in flags for f in info["flags"]):
-                    #print(f"Packet matches {state} state with flags {flags}")
                     flag = int(dictionarys.TCP_FLAG_NUMBERS.get(state))
 
         land = int(packet[IP].sport == packet[IP].dport and packet[IP].dst == packet[IP].src)
@@ -147,7 +146,7 @@ def packet_sniffer(packet, data, received_time):
 
         result = intrusion_model.classify(X1)     
         if result == "anomaly":
-            print("The machine learning model identified the packet as:", "\033[1;31;40m{}\033[0m".format(result.upper()))  # Red
+            print("The machine learning model identified the packet as:", "\033[1;31;40m{} - DOS Attack\033[0m".format(result.upper()))  # Red
         else:
             print("The machine learning model identified the packet as:", "\033[1;32;40m{}\033[0m".format(result.upper()))  # Green
         
