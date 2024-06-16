@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from sklearn.metrics import classification_report, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report
+
 
 class IntrusionDetectionModel:
     def __init__(self, model_path, x_test_path, y_test_path):
